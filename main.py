@@ -33,3 +33,5 @@ def recommend_items(user_id, user_item_matrix, user_similarity_df, top_n=5):
 
 # Example: Recommend items for user_id 1
 print(recommend_items(user_id=1, user_item_matrix=user_item_matrix, user_similarity_df=user_similarity_df))
+
+from sklearn.metrics import mean_squared_error
