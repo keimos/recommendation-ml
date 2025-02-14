@@ -46,3 +46,4 @@ def evaluate(user_item_matrix, user_similarity_df):
             predicted.append(recommendations[item_id])
     return np.sqrt(mean_squared_error(actual, predicted))
 
+print(f"Root Mean Squared Error: {evaluate(user_item_matrix, user_similarity_df)}")
