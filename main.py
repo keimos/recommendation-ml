@@ -23,13 +23,15 @@ user_similarity_df = pd.DataFrame(user_similarity, index=user_item_matrix.index,
 def recommend_items(user_id, user_item_matrix, user_similarity_df, top_n=5):
     # Get the similarity scores for the given user
     similar_users = user_similarity_df[user_id].sort_values(ascending=False)[1:]  # Exclude the user itself
+    sim_sum = similar_users.sum()
+    if sim_sum == 0:
+        return pd.Series(dtype=float)  # No similar users found. Return empty series.
 
     # Weighted sum of ratings from similar users
-    recommendations = user_item_matrix.mul(similar_users, axis=0).sum(axis=0) / similar_users.sum()
+    recommendations = user_item_matrix.mul(similar_users, axis=0).sum(axis=0) / sim_sum
 
     # Recommend items that the user hasn't rated yet
     items_to_recommend = recommendations[user_item_matrix.loc[user_id] == 0].sort_values(ascending=False)
-
     return items_to_recommend.head(top_n)
 
 # Example: Recommend items for user_id 1
@@ -38,12 +40,22 @@ print(recommend_items(user_id=1, user_item_matrix=user_item_matrix, user_similar
 from sklearn.metrics import mean_squared_error
 
 def evaluate(user_item_matrix, user_similarity_df):
+    """
+    # Evaluate the model using Root Mean Squared Error (RMSE)
+    """
     actual, predicted = [], []
     for user_id in user_item_matrix.index:
-        recommendations = recommend_items(user_id, user_item_matrix, user_similarity_df, top_n=5)
-        for item_id in recommendations.index:
-            actual.append(user_item_matrix.loc[user_id, item_id])
-            predicted.append(recommendations[item_id])
+        for item_id in user_item_matrix.columns:
+            if user_item_matrix.loc[user_id, item_id] > 0:
+                # Temporarily remove the user's rating for prediction
+                original = user_item_matrix.loc[user_id, item_id]
+                user_item_matrix.loc[user_id, item_id] = 0
+                recs = recommend_items(user_id, user_item_matrix, user_similarity_df, top_n=user_item_matrix.shape[1])
+                pred = recs.get(item_id, 0)
+                actual.append(original)
+                predicted.append(pred)
+                user_item_matrix.loc[user_id, item_id] = original # Restore the original rating
+
     return np.sqrt(mean_squared_error(actual, predicted))
 
 print(f"Root Mean Squared Error: {evaluate(user_item_matrix, user_similarity_df)}")
